@@ -15,41 +15,16 @@ async function init() {
 async function startApp() {
   web3 = new Web3(window.ethereum)
   console.log('web3', web3)
-	contract = loadContract()
+	contract = await loadContract()
   currentAccount = await ethereum.request({ method: 'eth_accounts'})[0]
 	// Event Listeners
-  /*contract.events.GewinnerIst().on('data', (event) => {
-		  	$('#gewinneranzeigen').text('Gewinner ist: ' + event)
-		  	console.log(event.returnValues.Gewinner)
-	  	})
-	contract.events.EinsatzIst().on('data', (event) => {
-			//$('#einsatzanzeigen').text('Der Einsatz ist: ' + event)
-			//console.log(event.returnValues.Einsatz)
-      let Einsatz = document.getElementById('einsatzanzeigen')
-      Einsatz.innerHTML = event.returnValues.Einsatz
-      console.log(Einsatz)
-		})
-    contract.GewinnerIst().watch(function(error, result) {
-      if (!error) {
-        $('#gewinneranzeigen').html('Gewinner ist:' + result.args.Gewinner)
-      } else {
-        console.log(error)
-      }
-    })
-    //$('#einsatzanzeigen').text('Einsatz ist:')
-    contract.EinsatzIst().watch(function(error, result) {
-      if (!error) {
-        $('#einsatzanzeigen').text('Einsatz ist:' + result.args.Einsatz)
-      } else {
-        console.log(error)
-      }
-    })
-    contract.events.EinsatzIst().watch('data', (result) => {
-        $('#einsatzanzeigen').text('Einsatz ist:' + web3.utils.fromWei(result.args.Einsatz, 'wei') + 'ETH')
-    })*/
-    //$('#einsatzanzeigen').text('Einsatz ist:' + web3.utils.fromWei(web3.utils.toBN(1000000000000), 'wei') + 'ETH')
   contract.events.EinsatzIst().on('data', function(event) {
-      $('#einsatzanzeigen').text('Einsatz ist:' + web3.utils.fromWei(web3.utils.toBN(event), 'wei') + 'ETH')
+    console.log(event)
+    $('#einsatzanzeigen').text('Einsatz ist: ' + web3.utils.fromWei(event.returnValues.Einsatz, 'ether') + ' ETH')
+  })
+  contract.events.GewinnerIst().on('data', function(event) {
+    console.log(event)
+    $('#gewinneranzeigen').text('Gewinner ist: ' + event.returnValues.Gewinner)
   })
 }
 
