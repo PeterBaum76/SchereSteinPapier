@@ -93,10 +93,8 @@ contract SchereSteinPapier {
     Status status;
 
     // Timer
-    uint public start;
     uint public stop;
-    uint public start1;
-    uint public stop1 = 100000000000000000000;
+    uint public stop1;
     uint public jetzt;
 
     // event für Einsatz
@@ -145,8 +143,7 @@ contract SchereSteinPapier {
              require (msg.value == Einsatz, "Dein Spiel-Einsatz muss dem Vorgegebenen entsprechen!");
              Spieler[1] = payable(msg.sender);
              status = Status.Wahl;
-             start = block.timestamp;
-             stop = start + 30;
+             stop = block.timestamp + 30;
          }
     }
 
@@ -161,8 +158,7 @@ contract SchereSteinPapier {
         }
         if (VerschluesselterZug[0] != 0 && VerschluesselterZug[1] != 0) {
             status = Status.Entscheidung;
-            start1 = block.timestamp;
-            stop1 = start1 + 900;
+            stop1 = block.timestamp + 900;
         }
     }
 
@@ -238,14 +234,13 @@ contract SchereSteinPapier {
     // Funktion zum Erstatten des Einsatzes
     function erstatten() public IstSpieler {
         jetzt = block.timestamp;
-        require (status == Status.Wahl || status == Status.Entscheidung, "Du befindest dich im falschen Spiel-Status!");
-        require (stop < jetzt || stop1 < jetzt, "Die Zeit ist noch nicht abgelaufen!");
+        require ((status == Status.Wahl && stop < jetzt) || (status == Status.Entscheidung && stop1 < jetzt), "Du befindest dich im falschen Spiel-Status oder die Zeit ist noch nicht abgelaufen!");
         if (stop < jetzt) {
             if (VerschluesselterZug[0] == 0) {
                 payable(Spieler[1]).transfer(2*Einsatz-200000000000000);
                 initialisieren();
             }
-            if (VerschluesselterZug[1] == 0) {
+            else if (VerschluesselterZug[1] == 0) {
                 payable(Spieler[0]).transfer(2*Einsatz-200000000000000);
                 initialisieren();
             }
@@ -256,7 +251,7 @@ contract SchereSteinPapier {
                 payable(Spieler[1]).transfer(2*Einsatz-200000000000000);
                 initialisieren();
             }
-            if (Zug[1] == 0) {
+            else if (Zug[1] == 0) {
                 payable(Spieler[0]).transfer(2*Einsatz-200000000000000);
                 initialisieren();
             }
