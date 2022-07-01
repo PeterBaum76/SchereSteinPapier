@@ -54,10 +54,6 @@ contract Factory is CloneFactory {
         emit Spielerzeugt(child, address(this));
     }
 
-    /*function getAddress() public view returns(address) {
-        return address(this);
-    }*/
-
     function ETHabheben() public  {
         require (msg.sender == owner, "Nur der Smart Contract owner/Betreiber ist berechtigt!");
         payable(owner).transfer(address(this).balance);
@@ -70,7 +66,7 @@ contract Factory is CloneFactory {
 contract SchereSteinPapier {
     
     // speichern der Factory-Addresse
-    address payable public FactoryAddress;
+    address public FactoryAddress;
 
     // speichern der Spieler-Addressen
     address [2] public Spieler;
@@ -103,6 +99,9 @@ contract SchereSteinPapier {
     // event für Gewinner
     event GewinnerIst (address Gewinner);
 
+    // event für Spielstatus
+    event Spielstatus (uint Status);
+
     // Modifier zum Prüfen ob es sich um einen Spieler handelt
     modifier IstSpieler() {
         require (msg.sender == Spieler[0] || msg.sender == Spieler[1], "Du bist kein Spieler der aktieven Runde!");
@@ -115,7 +114,7 @@ contract SchereSteinPapier {
     }
 
     function init(address _FactoryAddress) external {
-        FactoryAddress = payable(_FactoryAddress);
+        FactoryAddress = _FactoryAddress;
     }
 
     // Funktion zum initialisieren des Spiels
@@ -131,20 +130,21 @@ contract SchereSteinPapier {
 
     // Funktion zum Spiel-Beitritt
     function spielen() public payable {
-         require (status == Status.Beginn, "Das Spiel hat bereits begonnen!");
-         require (msg.value > 1000000000000000, "Du musst einen Einsatz (min. 0,001 ETH) setzen; der owner erhaelt 0,000.1 ETH!");
-         if (Spieler[0] == address(0)) {
-             Einsatz = msg.value;
-             emit EinsatzIst(Einsatz);
-             Spieler[0] = payable(msg.sender);
-         }
-         else if (Spieler[1] == address(0)) {
-             require (msg.sender != Spieler[0], "Du kannst nicht gegen dich selbst spielen!");
-             require (msg.value == Einsatz, "Dein Spiel-Einsatz muss dem Vorgegebenen entsprechen!");
-             Spieler[1] = payable(msg.sender);
-             status = Status.Wahl;
-             stop = block.timestamp + 30;
-         }
+        require (status == Status.Beginn, "Das Spiel hat bereits begonnen!");
+        require (msg.value > 1000000000000000, "Du musst einen Einsatz (min. 0,001 ETH) setzen; der owner erhaelt 0,000.1 ETH!");
+        if (Spieler[0] == address(0)) {
+            Einsatz = msg.value;
+            emit EinsatzIst(Einsatz);
+            Spieler[0] = payable(msg.sender);
+        }
+        else if (Spieler[1] == address(0)) {
+            require (msg.sender != Spieler[0], "Du kannst nicht gegen dich selbst spielen!");
+            require (msg.value == Einsatz, "Dein Spiel-Einsatz muss dem Vorgegebenen entsprechen!");
+            Spieler[1] = payable(msg.sender);
+            status = Status.Wahl;
+            emit Spielstatus(1);
+            stop = block.timestamp + 900;
+        }
     }
 
     // Funktion zum Wählen von Schere, Stein oder Papier
@@ -158,6 +158,7 @@ contract SchereSteinPapier {
         }
         if (VerschluesselterZug[0] != 0 && VerschluesselterZug[1] != 0) {
             status = Status.Entscheidung;
+            emit Spielstatus(2);
             stop1 = block.timestamp + 900;
         }
     }
@@ -165,7 +166,7 @@ contract SchereSteinPapier {
     // Funktion deckt Wahl des Spielers auf
     function wahlentschluesseln(uint wahl, string memory schluessel) public IstSpieler {
         require (status == Status.Entscheidung, "Die Wahl kann noch nicht aufgedeckt werden!");
-        bytes32 verschluesselt = keccak256(abi.encodePacked(wahl, schluessel)); //keccak256 takes a hex argument and not a string
+        bytes32 verschluesselt = keccak256(abi.encodePacked(wahl, schluessel)); 
         if (msg.sender == Spieler[0]) {
             if (verschluesselt == VerschluesselterZug[0]) {
                 Zug[0] = wahl;
@@ -189,6 +190,7 @@ contract SchereSteinPapier {
             if (Zug[1] == 1) {
                 payable(Spieler[0]).transfer(Einsatz-100000000000000);
                 payable(Spieler[1]).transfer(Einsatz-100000000000000);
+                emit GewinnerIst(address(0));
             }
             if (Zug[1] == 2) {
                 payable(Spieler[1]).transfer(2*Einsatz-200000000000000);
@@ -207,6 +209,7 @@ contract SchereSteinPapier {
             if (Zug[1] == 2) {
                 payable(Spieler[0]).transfer(Einsatz-100000000000000);
                 payable(Spieler[1]).transfer(Einsatz-100000000000000);
+                emit GewinnerIst(address(0));
             }
             if (Zug[1] == 3) {
                 payable(Spieler[1]).transfer(2*Einsatz-200000000000000);
@@ -225,6 +228,7 @@ contract SchereSteinPapier {
             if (Zug[1] == 3) {
                 payable(Spieler[0]).transfer(Einsatz-100000000000000);
                 payable(Spieler[1]).transfer(Einsatz-100000000000000);
+                emit GewinnerIst(address(0));
             }
         }
         payable(FactoryAddress).transfer(address(this).balance); 

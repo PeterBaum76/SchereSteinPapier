@@ -79,8 +79,17 @@ async function spielinitialisieren() {
     $('#gewinneranzeigen').text('Gewinner ist: ' + event.returnValues.Gewinner)
   })
   console.log(transaction1)
-  const transaction2 = await SchereSteinPapier.methods.init(FactoryAddresse).send({ from: currentAccount })
-  console.log(transaction2)
+  const transaction2 = await SchereSteinPapier.events.Spielstatus().on('data', function(event) {
+    console.log(event)
+    if(event.returnValues.Status == 1) {
+      $('#Spielstatus').text('Triff deine Wahl')
+    }
+    else {
+      $('#Spielstatus').text('Bestätige deine Wahl')
+    }
+  })
+  const transaction3 = await SchereSteinPapier.methods.init(FactoryAddresse).send({ from: currentAccount })
+  console.log(transaction3)
 }
 
 // Funktion um Spiel beizutreten
