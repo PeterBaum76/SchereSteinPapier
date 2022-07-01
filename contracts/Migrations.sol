@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <=0.8.7;
+pragma solidity >=0.4.17 <=0.8.15;
 
 contract Migrations {
   address public owner = msg.sender;

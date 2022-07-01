@@ -4,10 +4,73 @@
 
 pragma solidity ^0.8.7;
 
+contract CloneFactory {
+
+  function createClone(address target) internal returns (address result) {
+    bytes20 targetBytes = bytes20(target);
+    assembly {
+      let clone := mload(0x40)
+      mstore(clone, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
+      mstore(add(clone, 0x14), targetBytes)
+      mstore(add(clone, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
+      result := create(0, clone, 0x37)
+    }
+  }
+
+  function isClone(address target, address query) internal view returns (bool result) {
+    bytes20 targetBytes = bytes20(target);
+    assembly {
+      let clone := mload(0x40)
+      mstore(clone, 0x363d3d373d3d3d363d7300000000000000000000000000000000000000000000)
+      mstore(add(clone, 0xa), targetBytes)
+      mstore(add(clone, 0x1e), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
+
+      let other := add(clone, 0x40)
+      extcodecopy(query, other, 0, 0x2d)
+      result := and(
+        eq(mload(clone), mload(other)),
+        eq(mload(add(clone, 0xd)), mload(add(other, 0xd)))
+      )
+    }
+  }
+}
+
+contract Factory is CloneFactory {
+
+     address[] public childrenaddress;
+     address masterContract;
+     address public owner;
+
+     constructor(address _masterContract){
+         masterContract = _masterContract;
+         owner = msg.sender;
+     }
+
+    event Spielerzeugt(address Spieladdresse, address Factoryaddresse);
+
+    function createChild() external{
+        address child = createClone(masterContract);
+        childrenaddress.push(child);
+        emit Spielerzeugt(child, address(this));
+    }
+
+    /*function getAddress() public view returns(address) {
+        return address(this);
+    }*/
+
+    function ETHabheben() public  {
+        require (msg.sender == owner, "Nur der Smart Contract owner/Betreiber ist berechtigt!");
+        payable(owner).transfer(address(this).balance);
+    }
+
+    receive() external payable{}
+
+}
+
 contract SchereSteinPapier {
     
-    // speichern des Smart Contract owners/Betreibers
-    address public owner;
+    // speichern der Factory-Addresse
+    address payable public FactoryAddress;
 
     // speichern der Spieler-Addressen
     address [2] public Spieler;
@@ -50,8 +113,11 @@ contract SchereSteinPapier {
 
     // Konstruktor legt owner fest und initialisiert Variablen
     constructor() public {
-        owner = payable(msg.sender);
         initialisieren();
+    }
+
+    function init(address _FactoryAddress) external {
+        FactoryAddress = payable(_FactoryAddress);
     }
 
     // Funktion zum initialisieren des Spiels
@@ -68,7 +134,7 @@ contract SchereSteinPapier {
     // Funktion zum Spiel-Beitritt
     function spielen() public payable {
          require (status == Status.Beginn, "Das Spiel hat bereits begonnen!");
-         require (msg.value > 1000000000000000, "Du musst einen Einsatz (min. 0,001 ETH) setzen; der owner erhaelt 0,0001 ETH!");
+         require (msg.value > 1000000000000000, "Du musst einen Einsatz (min. 0,001 ETH) setzen; der owner erhaelt 0,000.1 ETH!");
          if (Spieler[0] == address(0)) {
              Einsatz = msg.value;
              emit EinsatzIst(Einsatz);
@@ -165,6 +231,7 @@ contract SchereSteinPapier {
                 payable(Spieler[1]).transfer(Einsatz-100000000000000);
             }
         }
+        payable(FactoryAddress).transfer(address(this).balance); 
         initialisieren();
     }
 
@@ -182,6 +249,7 @@ contract SchereSteinPapier {
                 payable(Spieler[0]).transfer(2*Einsatz-200000000000000);
                 initialisieren();
             }
+            payable(FactoryAddress).transfer(address(this).balance);
         }
         else if (stop1 < jetzt) {
             if (Zug[0] == 0) {
@@ -192,13 +260,7 @@ contract SchereSteinPapier {
                 payable(Spieler[0]).transfer(2*Einsatz-200000000000000);
                 initialisieren();
             }
+            payable(FactoryAddress).transfer(address(this).balance);
         }
-    }
-
-    // Funktion um ETH-Balance abzuheben
-    function ETHabheben() public  {
-        require (msg.sender == owner, "Nur der Smart Contract owner/Betreiber ist berechtigt!");
-        require (status == Status.Beginn, "Es wird gerade gespielt!");
-        payable(owner).transfer(address(this).balance);
     }
 }
