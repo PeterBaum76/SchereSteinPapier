@@ -7,7 +7,7 @@ let FactoryAddresse
 
 // Lädt Metamask und startet die App
 async function init() {
-		if(window.ethereum) {
+	if(window.ethereum) {
 		await startApp()
 	} else {
 		console.log('Unable to detect the wallet provider')
@@ -36,7 +36,7 @@ async function startApp() {
 async function loadContract() {
   let jsonData = await $.getJSON('Factory.json')
   const abi = jsonData.abi
-  const networkId = await web3.eth.net.getId() //5777
+  const networkId = await web3.eth.net.getId() 
   const contractAddr = jsonData.networks[networkId].address
 	contract = new web3.eth.Contract(abi, contractAddr)
   console.log('contract', contract)
@@ -76,7 +76,12 @@ async function spielinitialisieren() {
   console.log(transaction)
   const transaction1 = await SchereSteinPapier.events.GewinnerIst().on('data', function(event) {
     console.log(event)
+    if(event.returnValues.Gewinner == 0x0000000000000000000000000000000000000000) {
+      $('#gewinneranzeigen').text('Spiel ist unentschieden')
+    }
+    else {
     $('#gewinneranzeigen').text('Gewinner ist: ' + event.returnValues.Gewinner)
+    }
   })
   console.log(transaction1)
   const transaction2 = await SchereSteinPapier.events.Spielstatus().on('data', function(event) {
